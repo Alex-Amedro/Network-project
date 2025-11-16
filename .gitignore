@@ -1,0 +1,54 @@
+# Build directories
+build/
+bin/
+obj/
+*.o
+*.a
+*.so
+*.dylib
+.venv/
+# msquic submodule (trop gros pour git)
+cloud-gaming-project/msquic/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+
+# Results and logs
+*.log
+*.json
+results_*.json
+video_*.json
+tcp_results.json
+quic_results.txt
+benchmark_summary.json
+
+# Generated images
+*.png
+tcp_vs_quic_comparison.png
+gaming_*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Certificates (auto-generated)
+*.pem
+*.crt
+*.key
+server_cert.pem
+server_key.pem
