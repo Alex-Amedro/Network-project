@@ -1,0 +1,37 @@
+# Exclure le répertoire msquic (trop volumineux)
+msquic/
+
+# Fichiers de résultats JSON
+results_*.json
+video_*.json
+
+# Graphiques générés
+*.png
+gaming_*.png
+
+# Logs
+*.log
+server_*.log
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+
+# Fichiers IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Fichiers système
+.DS_Store
+Thumbs.db

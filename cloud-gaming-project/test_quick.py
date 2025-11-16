@@ -18,7 +18,7 @@ def test_one_scenario():
     setLogLevel('info')
     
     print("\n" + "="*70)
-    print("TEST RAPIDE - Scénario Moyen avec UDP")
+    print("TEST RAPIDE - Scénario Moyen avec QUIC")
     print("="*70)
     
     # Configuration réseau moyen
@@ -45,11 +45,11 @@ def test_one_scenario():
     result = net.ping([client, server], timeout=2)
     
     try:
-        # Démarrer le serveur UDP
+        # Démarrer le serveur QUIC
         server_script = os.path.join(WORK_DIR, 'video_server.py')
         log_file = os.path.join(WORK_DIR, 'server_test.log')
-        info('*** Démarrage du serveur UDP\n')
-        server.cmd(f'cd {WORK_DIR} && python3 {server_script} 5000 UDP > {log_file} 2>&1 &')
+        info('*** Démarrage du serveur QUIC\n')
+        server.cmd(f'cd {WORK_DIR} && python3 {server_script} 5000 QUIC > {log_file} 2>&1 &')
         time.sleep(2)
         
         # Vérifier que le serveur tourne
@@ -61,8 +61,8 @@ def test_one_scenario():
         
         # Lancer le client pour 10 secondes
         client_script = os.path.join(WORK_DIR, 'video_traffic_gen.py')
-        info('*** Lancement du client UDP (10 secondes)\n')
-        result = client.cmd(f'cd {WORK_DIR} && python3 {client_script} {server.IP()} UDP 10')
+        info('*** Lancement du client QUIC (10 secondes)\n')
+        result = client.cmd(f'cd {WORK_DIR} && python3 {client_script} {server.IP()} QUIC 10')
         info(f'Résultat client: {result}\n')
         
         time.sleep(2)

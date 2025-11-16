@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Analyse des résultats des tests Cloud Gaming
-Génère les graphiques et tableaux comparatifs
+Génère les graphiques et tableaux comparatifs TCP vs QUIC
 """
 
 import json
@@ -24,7 +24,7 @@ def load_results():
     
     for scenario in ['bon', 'moyen', 'mauvais']:
         results[scenario] = {}
-        for protocol in ['tcp', 'udp']:
+        for protocol in ['tcp', 'quic']:
             # Charger les résultats client
             client_file = os.path.join(WORK_DIR, f'video_traffic_{protocol}_results.json')
             server_file = os.path.join(WORK_DIR, f'video_server_{protocol}_results.json')
@@ -94,18 +94,18 @@ def calculate_gaming_metrics(client_data, server_data):
     
     return metrics
 
-def create_scenario_comparison(scenario_name, tcp_metrics, udp_metrics):
+def create_scenario_comparison(scenario_name, tcp_metrics, quic_metrics):
     """Crée un graphique de comparaison pour un scénario"""
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(f'Cloud Gaming - {SCENARIOS[scenario_name]}', 
                  fontsize=16, fontweight='bold')
     
-    protocols = ['TCP', 'UDP']
-    colors = ['#3498db', '#e74c3c']
+    protocols = ['TCP', 'QUIC']
+    colors = ['#3498db', '#2ecc71']
     
     # 1. Frame Delivery Rate
     ax1 = axes[0, 0]
-    delivery_rates = [tcp_metrics['frame_delivery_rate'], udp_metrics['frame_delivery_rate']]
+    delivery_rates = [tcp_metrics['frame_delivery_rate'], quic_metrics['frame_delivery_rate']]
     bars1 = ax1.bar(protocols, delivery_rates, color=colors, alpha=0.8)
     ax1.set_ylabel('Taux de livraison (%)', fontweight='bold')
     ax1.set_title('Frame Delivery Rate')
@@ -120,7 +120,7 @@ def create_scenario_comparison(scenario_name, tcp_metrics, udp_metrics):
     
     # 2. FPS Reçus
     ax2 = axes[0, 1]
-    fps_values = [tcp_metrics['fps_received'], udp_metrics['fps_received']]
+    fps_values = [tcp_metrics['fps_received'], quic_metrics['fps_received']]
     bars2 = ax2.bar(protocols, fps_values, color=colors, alpha=0.8)
     ax2.set_ylabel('FPS', fontweight='bold')
     ax2.set_title('Frames Par Seconde Reçues')
@@ -135,7 +135,7 @@ def create_scenario_comparison(scenario_name, tcp_metrics, udp_metrics):
     
     # 3. Latence moyenne
     ax3 = axes[1, 0]
-    latencies = [tcp_metrics['avg_latency_ms'], udp_metrics['avg_latency_ms']]
+    latencies = [tcp_metrics['avg_latency_ms'], quic_metrics['avg_latency_ms']]
     bars3 = ax3.bar(protocols, latencies, color=colors, alpha=0.8)
     ax3.set_ylabel('Latence (ms)', fontweight='bold')
     ax3.set_title('Latence Moyenne Inter-Frame')
@@ -149,7 +149,7 @@ def create_scenario_comparison(scenario_name, tcp_metrics, udp_metrics):
     
     # 4. Jitter
     ax4 = axes[1, 1]
-    jitters = [tcp_metrics['jitter_ms'], udp_metrics['jitter_ms']]
+    jitters = [tcp_metrics['jitter_ms'], quic_metrics['jitter_ms']]
     bars4 = ax4.bar(protocols, jitters, color=colors, alpha=0.8)
     ax4.set_ylabel('Jitter (ms)', fontweight='bold')
     ax4.set_title('Variation de Latence (Jitter)')
@@ -183,7 +183,7 @@ def create_summary_table(all_metrics):
         if scenario not in all_metrics:
             continue
         
-        for protocol in ['tcp', 'udp']:
+        for protocol in ['tcp', 'quic']:
             if protocol not in all_metrics[scenario]:
                 continue
             
@@ -241,7 +241,7 @@ def create_summary_table(all_metrics):
             if i % 2 == 0:
                 table[(i, j)].set_facecolor('#ecf0f1')
     
-    plt.title('Tableau Récapitulatif - Cloud Gaming TCP vs UDP', 
+    plt.title('Tableau Récapitulatif - Cloud Gaming TCP vs QUIC', 
               fontsize=16, fontweight='bold', pad=20)
     
     plt.savefig('gaming_summary_table.png', dpi=300, bbox_inches='tight')
@@ -251,7 +251,7 @@ def create_summary_table(all_metrics):
 def print_text_summary(all_metrics):
     """Affiche un résumé textuel des résultats"""
     print("\n" + "="*80)
-    print("RÉSUMÉ DES RÉSULTATS - CLOUD GAMING TCP vs UDP")
+    print("RÉSUMÉ DES RÉSULTATS - CLOUD GAMING TCP vs QUIC")
     print("="*80)
     
     for scenario in ['bon', 'moyen', 'mauvais']:
@@ -261,7 +261,7 @@ def print_text_summary(all_metrics):
         print(f"\n📊 {SCENARIOS[scenario]}")
         print("-" * 80)
         
-        for protocol in ['tcp', 'udp']:
+        for protocol in ['tcp', 'quic']:
             if protocol not in all_metrics[scenario]:
                 continue
             
@@ -295,7 +295,7 @@ def main():
         
         all_metrics[scenario] = {}
         
-        for protocol in ['tcp', 'udp']:
+        for protocol in ['tcp', 'quic']:
             if protocol not in results[scenario]:
                 continue
             
@@ -314,10 +314,10 @@ def main():
     print(f"\n📊 Génération des graphiques...")
     
     for scenario in ['bon', 'moyen', 'mauvais']:
-        if scenario in all_metrics and 'tcp' in all_metrics[scenario] and 'udp' in all_metrics[scenario]:
+        if scenario in all_metrics and 'tcp' in all_metrics[scenario] and 'quic' in all_metrics[scenario]:
             create_scenario_comparison(scenario, 
                                       all_metrics[scenario]['tcp'],
-                                      all_metrics[scenario]['udp'])
+                                      all_metrics[scenario]['quic'])
     
     # Créer le tableau récapitulatif
     create_summary_table(all_metrics)

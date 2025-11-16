@@ -2,9 +2,11 @@
 
 ## Description
 
-Ce projet compare les performances de **TCP** et **UDP** pour le streaming de jeu vidéo dans le cloud (Cloud Gaming) sous différentes conditions réseau.
+Ce projet compare les performances de **TCP** et **QUIC** pour le streaming de jeu vidéo dans le cloud (Cloud Gaming) sous différentes conditions réseau.
 
 Le benchmark simule un flux vidéo de 60 FPS avec des frames de taille variable (I-frames et P-frames) et mesure les performances dans 3 scénarios réseau différents.
+
+**Note**: QUIC est un protocole de transport moderne basé sur UDP mais offrant la fiabilité de TCP avec de meilleures performances (réduction de latence, multiplexage sans blocage de tête de ligne).
 
 ## Architecture
 
@@ -70,7 +72,7 @@ sudo python3 gaming_benchmark.py
 
 Le script va :
 - Tester les 3 scénarios réseau (Bon, Moyen, Mauvais)
-- Pour chaque scénario, tester TCP et UDP
+- Pour chaque scénario, tester TCP et QUIC
 - Chaque test dure 30 secondes
 - **Durée totale** : ~5 minutes
 
@@ -88,18 +90,18 @@ Cela génère :
 ## Résultats Attendus
 
 ### Réseau Bon (Fibre)
-- **TCP** et **UDP** devraient tous deux bien performer
+- **TCP** et **QUIC** devraient tous deux bien performer
 - Frame Delivery Rate > 95%
 - FPS proche de 60
 
 ### Réseau Moyen (WiFi)
-- **UDP** devrait commencer à montrer des avantages
+- **QUIC** devrait commencer à montrer des avantages
 - TCP pourrait avoir plus de retransmissions
 - FPS entre 50-60
 
 ### Réseau Mauvais (4G)
 - **TCP** souffrira significativement des pertes
-- **UDP** maintiendra un meilleur débit mais avec des pertes
+- **QUIC** maintiendra un meilleur débit grâce à l'absence de Head-of-Line Blocking
 - Différence marquée entre les deux protocoles
 
 ## Interprétation des Résultats
@@ -110,18 +112,21 @@ Cela génère :
 - ❌ **Sensible aux pertes** : Les retransmissions ralentissent le flux
 - ❌ **Head-of-Line Blocking** : Une frame perdue bloque les suivantes
 
-### UDP (User Datagram Protocol)
-- ✅ **Faible latence** : Pas d'attente pour les retransmissions
-- ✅ **Meilleur débit** : Continue d'envoyer même avec pertes
-- ❌ **Non fiable** : Des frames peuvent être perdues
-- ❌ **Pas d'ordre garanti** : Frames peuvent arriver dans le désordre
-
 ### QUIC (Quick UDP Internet Connections)
-Dans un vrai système, QUIC combinerait :
-- La faible latence d'UDP
-- La fiabilité de TCP
-- Pas de Head-of-Line Blocking
-- Multiplexage de streams
+- ✅ **Fiable** : Garantit la livraison comme TCP
+- ✅ **Faible latence** : Basé sur UDP, pas d'attente inutile
+- ✅ **Pas de Head-of-Line Blocking** : Les streams sont indépendants
+- ✅ **Multiplexage** : Plusieurs flux simultanés sans blocage
+- ✅ **0-RTT** : Connexions plus rapides
+- Combine les avantages de TCP (fiabilité) et UDP (performance)
+
+### Comparaison
+
+Dans ce benchmark, QUIC devrait montrer :
+- Une fiabilité similaire à TCP
+- De meilleures performances sous conditions réseau dégradées
+- Moins de latence grâce à l'absence de Head-of-Line Blocking
+- Un meilleur multiplexage de streams
 
 ## Structure des Fichiers de Résultats
 
@@ -135,9 +140,9 @@ results_<scenario>_<protocol>_server.json  # Données serveur (réception)
 ### Graphiques générés
 
 ```
-gaming_comparison_bon.png       # Comparaison TCP vs UDP (Réseau Bon)
-gaming_comparison_moyen.png     # Comparaison TCP vs UDP (Réseau Moyen)
-gaming_comparison_mauvais.png   # Comparaison TCP vs UDP (Réseau Mauvais)
+gaming_comparison_bon.png       # Comparaison TCP vs QUIC (Réseau Bon)
+gaming_comparison_moyen.png     # Comparaison TCP vs QUIC (Réseau Moyen)
+gaming_comparison_mauvais.png   # Comparaison TCP vs QUIC (Réseau Mauvais)
 gaming_summary_table.png        # Tableau récapitulatif
 ```
 

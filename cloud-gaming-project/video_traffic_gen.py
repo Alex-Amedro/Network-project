@@ -11,12 +11,12 @@ import json
 from datetime import datetime
 
 class VideoFrameGenerator:
-    def __init__(self, fps=60, avg_frame_size_kb=50, protocol='UDP'):
+    def __init__(self, fps=60, avg_frame_size_kb=50, protocol='QUIC'):
         self.fps = fps
         self.frame_interval = 1.0 / fps  # Temps entre frames
         self.avg_frame_size = avg_frame_size_kb * 1024  # En bytes
         self.protocol = protocol
-        # Taille max pour UDP : ~65KB - headers = 60KB max
+        # Taille max pour UDP/QUIC : ~65KB - headers = 60KB max
         self.max_udp_packet = 60000
         
     def generate_frame_size(self):
@@ -31,8 +31,8 @@ class VideoFrameGenerator:
         else:
             size = int(self.avg_frame_size * random.uniform(0.3, 1.2))
         
-        # Limiter la taille pour UDP
-        if self.protocol == 'UDP':
+        # Limiter la taille pour UDP/QUIC
+        if self.protocol in ['UDP', 'QUIC']:
             size = min(size, self.max_udp_packet)
         
         return size
@@ -50,7 +50,8 @@ class VideoFrameGenerator:
         }
         
         # Créer le socket
-        if self.protocol == 'UDP':
+        # QUIC utilise UDP sous le capot
+        if self.protocol in ['UDP', 'QUIC']:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         else:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,7 +71,7 @@ class VideoFrameGenerator:
                 frame_size = self.generate_frame_size()
                 frame_data = b'F' * frame_size  # Données factices
                 
-                if self.protocol == 'UDP':
+                if self.protocol in ['UDP', 'QUIC']:
                     sock.sendto(frame_data, (server_ip, port))
                 else:
                     sock.send(frame_data)
@@ -104,7 +105,7 @@ if __name__ == '__main__':
     
     if len(sys.argv) < 3:
         print("Usage: python3 video_traffic_gen.py <server_ip> <protocol> [duration]")
-        print("Exemple: python3 video_traffic_gen.py 10.0.0.2 UDP 30")
+        print("Exemple: python3 video_traffic_gen.py 10.0.0.2 QUIC 30")
         sys.exit(1)
     
     server_ip = sys.argv[1]
