@@ -1,6 +1,9 @@
 # Exclure le répertoire msquic (trop volumineux)
 msquic/
 
+# Environnement virtuel Python
+venv/
+
 # Fichiers de résultats JSON
 results_*.json
 video_*.json
