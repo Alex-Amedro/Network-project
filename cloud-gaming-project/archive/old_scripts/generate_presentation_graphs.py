@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Presentation Graphs - QUIC vs TCP
-High resolution graphs for projector presentation
+GRAPHIQUES DE PRÉSENTATION - QUIC vs TCP
+=========================================
+Haute résolution pour vidéoprojecteur
 """
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 
-# Presentation settings
+# Configuration globale pour présentation
 plt.rcParams['font.size'] = 14
 plt.rcParams['axes.titlesize'] = 18
 plt.rcParams['axes.labelsize'] = 16
@@ -18,45 +19,45 @@ plt.rcParams['figure.facecolor'] = 'white'
 plt.rcParams['axes.facecolor'] = 'white'
 plt.rcParams['savefig.facecolor'] = 'white'
 
-# Colors
-TCP_COLOR = '#d62728'   # Red
-QUIC_COLOR = '#2ca02c'  # Green
+# Couleurs
+TCP_COLOR = '#d62728'   # Rouge
+QUIC_COLOR = '#2ca02c'  # Vert
 
 
 def create_hol_blocking_graph():
-    """Graph 1: Head-of-Line Blocking"""
+    """Graphique 1 : Head-of-Line Blocking"""
     
     fig, ax = plt.subplots(figsize=(10, 7))
     
-    # Data
+    # Données
     protocols = ['TCP', 'QUIC']
     jitter = [60, 1.3]
     colors = [TCP_COLOR, QUIC_COLOR]
     
-    # Bars
+    # Barres
     bars = ax.bar(protocols, jitter, color=colors, width=0.5, edgecolor='black', linewidth=1.5)
     
-    # Annotations above bars
-    ax.annotate('Critical Lag\n(HoL Blocking)', 
+    # Annotations au-dessus des barres
+    ax.annotate('Lag Critique\n(HoL Blocking)', 
                 xy=(0, 60), xytext=(0, 70),
                 ha='center', va='bottom',
                 fontsize=14, fontweight='bold', color=TCP_COLOR,
                 bbox=dict(boxstyle='round,pad=0.3', facecolor='#ffcccc', edgecolor=TCP_COLOR))
     
-    ax.annotate('Smooth Gaming\n(40x better)', 
+    ax.annotate('Stable\n(40x mieux)', 
                 xy=(1, 1.3), xytext=(1, 15),
                 ha='center', va='bottom',
                 fontsize=14, fontweight='bold', color=QUIC_COLOR,
                 arrowprops=dict(arrowstyle='->', color=QUIC_COLOR, lw=2),
                 bbox=dict(boxstyle='round,pad=0.3', facecolor='#ccffcc', edgecolor=QUIC_COLOR))
     
-    # Values on bars
+    # Valeurs sur les barres
     ax.text(0, 60/2, '60 ms', ha='center', va='center', fontsize=16, fontweight='bold', color='white')
     ax.text(1, 1.3 + 3, '1.3 ms', ha='center', va='bottom', fontsize=16, fontweight='bold', color=QUIC_COLOR)
     
-    # Labels and title
+    # Labels et titre
     ax.set_ylabel('Jitter (ms)', fontsize=16, fontweight='bold')
-    ax.set_title('Gaming Fluidity Under 5% Packet Loss', fontsize=20, fontweight='bold', pad=20)
+    ax.set_title('Impact des Pertes (5%) sur la Fluidité', fontsize=20, fontweight='bold', pad=20)
     
     # Limites et style
     ax.set_ylim(0, 90)
@@ -77,36 +78,36 @@ def create_hol_blocking_graph():
 
 
 def create_connection_time_graph():
-    """Graph 2: Connection Time Comparison"""
+    """Graphique 2 : Temps de Connexion"""
     
     fig, ax = plt.subplots(figsize=(10, 7))
     
-    # Data
+    # Données
     protocols = ['TCP+TLS', 'QUIC']
     times = [1043, 649]
     colors = [TCP_COLOR, QUIC_COLOR]
     
-    # Bars
+    # Barres
     bars = ax.bar(protocols, times, color=colors, width=0.5, edgecolor='black', linewidth=1.5)
     
-    # Values on bars
+    # Valeurs sur les barres
     ax.text(0, 1043/2, '1043 ms', ha='center', va='center', fontsize=16, fontweight='bold', color='white')
     ax.text(1, 649/2, '649 ms', ha='center', va='center', fontsize=16, fontweight='bold', color='white')
     
-    # Arrow and gain annotation
+    # Flèche et annotation du gain
     ax.annotate('', 
                 xy=(1, 1043), xytext=(0, 1043),
                 arrowprops=dict(arrowstyle='<->', color='#333333', lw=3))
     
-    ax.annotate('40% Faster\nGame Launch', 
+    ax.annotate('-40%\nLatence au\ndémarrage', 
                 xy=(0.5, 1043), xytext=(0.5, 1150),
                 ha='center', va='bottom',
                 fontsize=15, fontweight='bold', color='#333333',
                 bbox=dict(boxstyle='round,pad=0.4', facecolor='#ffffcc', edgecolor='#333333', linewidth=2))
     
-    # Labels and title
-    ax.set_ylabel('Time (ms)', fontsize=16, fontweight='bold')
-    ax.set_title('Game Launch Speed (RTT 200ms)', fontsize=20, fontweight='bold', pad=20)
+    # Labels et titre
+    ax.set_ylabel('Temps (ms)', fontsize=16, fontweight='bold')
+    ax.set_title('Vitesse de Lancement du Jeu (RTT 200ms)', fontsize=20, fontweight='bold', pad=20)
     
     # Limites et style
     ax.set_ylim(0, 1300)
@@ -127,11 +128,11 @@ def create_connection_time_graph():
 
 
 if __name__ == "__main__":
-    print("Generating presentation graphs...\n")
+    print("Génération des graphiques de présentation...\n")
     
     create_hol_blocking_graph()
     create_connection_time_graph()
     
-    print("\n✅ All graphs generated!")
+    print("\n✅ Tous les graphiques générés!")
     print("   - final_hol_graph.png")
     print("   - final_conn_graph.png")
