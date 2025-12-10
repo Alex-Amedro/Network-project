@@ -19,6 +19,10 @@ import asyncio
 import subprocess
 from pathlib import Path
 
+# Force matplotlib to use non-interactive backend BEFORE importing pyplot
+import matplotlib
+matplotlib.use('Agg')
+
 # Mininet imports
 from mininet.net import Mininet
 from mininet.node import OVSSwitch
@@ -250,6 +254,7 @@ async def main():
     config = QuicConfiguration(is_client=False)
     config.load_cert_chain("server.cert", "server.key")
     config.verify_mode = False
+    config.idle_timeout = 30.0  # Increase timeout for high loss
     
     server = await serve(
         "0.0.0.0", PORT,
@@ -319,11 +324,12 @@ class ClientProtocol(QuicConnectionProtocol):
 async def main():
     config = QuicConfiguration(is_client=True)
     config.verify_mode = False
+    config.idle_timeout = 30.0  # Increase timeout for high loss
     
     await asyncio.sleep(1)  # Attendre serveur
     
     try:
-        async with connect(HOST, PORT, configuration=config, create_protocol=ClientProtocol) as protocol:
+        async with connect(HOST, PORT, configuration=config, create_protocol=ClientProtocol, wait_connected=True) as protocol:
             # Créer 2 streams: HIGH (stream 0) et LOW (stream 4)
             stream_high = protocol._quic.get_next_available_stream_id()
             stream_low = protocol._quic.get_next_available_stream_id()
@@ -504,12 +510,22 @@ def main():
     
     # Générer le graphique
     generate_graph(all_results)
+    
+    # Force kill all remaining processes and exit
+    subprocess.run(['pkill', '-9', '-f', 'quic_server'], capture_output=True)
+    subprocess.run(['pkill', '-9', '-f', 'tcp_server'], capture_output=True)
+    subprocess.run(['sudo', 'mn', '-c'], capture_output=True)
+    print("CLEANUP DONE - EXITING")
+    os._exit(0)
 
 
 def generate_graph(results):
     """Génère le graphique matplotlib"""
     import matplotlib.pyplot as plt
     import numpy as np
+    
+    # S'assurer que le backend non-interactif est utilisé
+    plt.switch_backend('Agg')
     
     # Extraire les données
     scenarios = [r["scenario"] for r in results]
@@ -544,9 +560,9 @@ def generate_graph(results):
     ax1.bar(x - width/2, tcp_high_jitter, width, label='TCP HIGH', color='#e74c3c', alpha=0.8)
     ax1.bar(x + width/2, quic_high_jitter, width, label='QUIC HIGH', color='#3498db', alpha=0.8)
     
-    ax1.set_xlabel('Scénario réseau', fontsize=12)
-    ax1.set_ylabel('Jitter (variance latence) - ms²', fontsize=12)
-    ax1.set_title('Head-of-Line Blocking: HIGH Priority Stream\n(Jitter élevé = blocage)', fontsize=14)
+    ax1.set_xlabel('Network Scenario', fontsize=12)
+    ax1.set_ylabel('Jitter (latency variance) - ms²', fontsize=12)
+    ax1.set_title('Head-of-Line Blocking: HIGH Priority Stream\n(High jitter = blocking)', fontsize=14)
     ax1.set_xticks(x)
     ax1.set_xticklabels(scenarios)
     ax1.legend()
@@ -556,9 +572,9 @@ def generate_graph(results):
     ax2.bar(x - width/2, tcp_low_jitter, width, label='TCP LOW', color='#e74c3c', alpha=0.8)
     ax2.bar(x + width/2, quic_low_jitter, width, label='QUIC LOW', color='#3498db', alpha=0.8)
     
-    ax2.set_xlabel('Scénario réseau', fontsize=12)
-    ax2.set_ylabel('Jitter (variance latence) - ms²', fontsize=12)
-    ax2.set_title('Head-of-Line Blocking: LOW Priority Stream\n(TCP LOW bloqué par HIGH perdu)', fontsize=14)
+    ax2.set_xlabel('Network Scenario', fontsize=12)
+    ax2.set_ylabel('Jitter (latency variance) - ms²', fontsize=12)
+    ax2.set_title('Head-of-Line Blocking: LOW Priority Stream\n(TCP LOW blocked by lost HIGH)', fontsize=14)
     ax2.set_xticks(x)
     ax2.set_xticklabels(scenarios)
     ax2.legend()
@@ -566,7 +582,7 @@ def generate_graph(results):
     
     plt.tight_layout()
     plt.savefig('HOL_BLOCKING_RESULTS.png', dpi=150, bbox_inches='tight')
-    plt.close()
+    plt.close('all')
     
     print("Graphique sauvegardé: HOL_BLOCKING_RESULTS.png")
 

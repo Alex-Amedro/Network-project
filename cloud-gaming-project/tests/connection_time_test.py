@@ -18,6 +18,10 @@ import asyncio
 import subprocess
 from pathlib import Path
 
+# Force matplotlib to use non-interactive backend
+import matplotlib
+matplotlib.use('Agg')
+
 # Mininet imports
 from mininet.net import Mininet
 from mininet.node import OVSSwitch
@@ -403,12 +407,20 @@ def main():
     
     # Générer le graphique
     generate_graph(all_results)
+    
+    # Force kill all remaining processes and exit
+    subprocess.run(['pkill', '-9', '-f', 'quic_'], capture_output=True)
+    subprocess.run(['pkill', '-9', '-f', 'tcp_'], capture_output=True)
+    subprocess.run(['sudo', 'mn', '-c'], capture_output=True)
+    os._exit(0)
 
 
 def generate_graph(results):
     """Génère le graphique"""
     import matplotlib.pyplot as plt
     import numpy as np
+    
+    plt.switch_backend('Agg')
     
     # Extraire les données
     rtts = []
@@ -441,9 +453,9 @@ def generate_graph(results):
     ax1.plot(rtts, tcp_times, 'o-', label='TCP+TLS', color='#e74c3c', linewidth=2, markersize=10)
     ax1.plot(rtts, quic_times, 's-', label='QUIC', color='#3498db', linewidth=2, markersize=10)
     
-    ax1.set_xlabel('RTT réseau (ms)', fontsize=12)
-    ax1.set_ylabel('Temps de connexion (ms)', fontsize=12)
-    ax1.set_title('Temps d\'établissement de connexion\nTCP+TLS vs QUIC', fontsize=14)
+    ax1.set_xlabel('Network RTT (ms)', fontsize=12)
+    ax1.set_ylabel('Connection Time (ms)', fontsize=12)
+    ax1.set_title('Connection Establishment Time\nTCP+TLS vs QUIC', fontsize=14)
     ax1.legend(fontsize=11)
     ax1.grid(True, alpha=0.3)
     
@@ -460,12 +472,12 @@ def generate_graph(results):
     bars2 = ax2.bar(x + width/2, quic_ratios, width, label='QUIC', color='#3498db', alpha=0.8)
     
     # Lignes de référence théoriques
-    ax2.axhline(y=3.5, color='#e74c3c', linestyle='--', alpha=0.5, label='TCP+TLS théorique (3.5 RTT)')
-    ax2.axhline(y=1.0, color='#3498db', linestyle='--', alpha=0.5, label='QUIC théorique (1 RTT)')
+    ax2.axhline(y=3.5, color='#e74c3c', linestyle='--', alpha=0.5, label='TCP+TLS theoretical (3.5 RTT)')
+    ax2.axhline(y=1.0, color='#3498db', linestyle='--', alpha=0.5, label='QUIC theoretical (1 RTT)')
     
-    ax2.set_xlabel('RTT réseau (ms)', fontsize=12)
-    ax2.set_ylabel('Temps / RTT (ratio)', fontsize=12)
-    ax2.set_title('Ratio temps de connexion / RTT\n(Plus bas = meilleur)', fontsize=14)
+    ax2.set_xlabel('Network RTT (ms)', fontsize=12)
+    ax2.set_ylabel('Time / RTT (ratio)', fontsize=12)
+    ax2.set_title('Connection Time / RTT Ratio\n(Lower = better)', fontsize=14)
     ax2.set_xticks(x)
     ax2.set_xticklabels([f'{r}ms' for r in rtts])
     ax2.legend(fontsize=9, loc='upper right')
@@ -481,7 +493,7 @@ def generate_graph(results):
     
     plt.tight_layout()
     plt.savefig('CONNECTION_TIME_RESULTS.png', dpi=150, bbox_inches='tight')
-    plt.close()
+    plt.close('all')
     
     print("Graphique sauvegardé: CONNECTION_TIME_RESULTS.png")
 
