@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""
-rQUIC - Reliable QUIC-like Protocol
-UDP avec ARQ (Automatic Repeat reQuest) pour simuler la fiabilité de QUIC
-sans la complexité du vrai protocole.
-
-Caractéristiques:
-- Basé sur UDP (faible latence)
-- Retransmission sélective des paquets perdus
-- Numérotation des frames avec ACK
-- Timeout adaptatif
-"""
 
 import socket
 import struct

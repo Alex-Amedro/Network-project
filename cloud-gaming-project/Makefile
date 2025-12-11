@@ -1,6 +1,6 @@
 PYTHON = sudo venv/bin/python3
 
-.PHONY: help setup test-hol test-hol-rquic test-connection test-connection-3proto test-multichannel demo-all clean
+.PHONY: help setup test-hol test-hol-rquic test-connection test-connection-3proto test-multichannel test-latency demo-all clean
 
 help:
 	@echo "=== TCP vs QUIC vs rQUIC Demo ==="
@@ -9,6 +9,7 @@ help:
 	@echo "  make test-connection      - Connection time (TCP+TLS vs QUIC)"
 	@echo "  make test-connection-3proto - Connection time (TCP vs QUIC vs rQUIC)"
 	@echo "  make test-multichannel    - 4-channel test (VIDEO/AUDIO/CONTROL)"
+	@echo "  make test-latency         - Latency test (TCP vs QUIC vs rQUIC)"
 	@echo "  make demo-all             - Run all tests"
 
 setup:
@@ -39,7 +40,12 @@ test-multichannel:
 	$(PYTHON) tests/multi_channel_test.py
 	@mv MULTI_CHANNEL_RESULTS.* results/graphs/ 2>/dev/null || true
 
-demo-all: test-hol-rquic test-connection-3proto test-multichannel
+test-latency:
+	@sudo service openvswitch-switch start 2>/dev/null || true
+	$(PYTHON) tests/latency_test_3proto.py
+	@mv LATENCY_3PROTO_RESULTS.* results/graphs/ 2>/dev/null || true
+
+demo-all: test-hol-rquic test-connection-3proto test-multichannel test-latency
 	@echo "=== DONE ==="
 	@ls results/graphs/*.png 2>/dev/null
 
