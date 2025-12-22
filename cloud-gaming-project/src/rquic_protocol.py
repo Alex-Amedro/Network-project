@@ -1,35 +1,4 @@
 #!/usr/bin/env python3
-"""
-rQUIC : Protocole fiable UDP avec ARQ optimisé pour Cloud Gaming
-
-================================================================================
-INNOVATION PRINCIPALE : TTL (Time-To-Live) = 50ms
-================================================================================
-
-🎮 PROBLÈME RÉSOLU :
-    Dans le cloud gaming, les vieilles frames vidéo n'ont AUCUNE valeur.
-    Si une frame arrive avec > 50ms de retard, le joueur est déjà 3 frames plus loin.
-    
-⚡ SOLUTION rQUIC :
-    Avant chaque retransmission, on vérifie l'âge de la frame :
-    - Si frame_age > 50ms → DROP (ne pas retransmettre)
-    - Si frame_age < 50ms → Retransmettre normalement
-    
-💡 AVANTAGES vs QUIC standard :
-    ✅ Économie de bande passante (pas de retrans inutiles)
-    ✅ Réduit latence globale (moins de congestion réseau)
-    ✅ Perte gracieuse (joueur voit frame plus récente de toute façon)
-    
-    QUIC standard = Retransmet TOUT (même les frames obsolètes)
-    rQUIC = Retransmet seulement ce qui a encore de la valeur
-    
-📊 TRACKING :
-    - Compteur 'frames_dropped_ttl' pour mesurer l'efficacité
-    - Log toutes les 10 frames droppées
-    - Résultats dans JSON de sortie
-
-================================================================================
-"""
 
 import socket
 import struct
@@ -48,20 +17,12 @@ PACKET_DATA = 0x01
 PACKET_ACK = 0x02
 PACKET_NACK = 0x03
 
-# ============================================================
-# SYSTÈME DE PRIORITÉS - NOUVEAU CODE
-# ============================================================
-# Permet de traiter différemment les types de données :
-# - CRITICAL : Input joueur, sync → JAMAIS dropper
-# - HIGH : I-frames vidéo → Important pour reconstruction
-# - MEDIUM : P-frames vidéo → Peut dropper après 50ms
-# - LOW : Chat, métadonnées → Dropper rapidement
-# ============================================================
+#hhhhhhhhhhhh
 class FramePriority(IntEnum):
-    CRITICAL = 0  # Input, sync - TTL 500ms
-    HIGH = 1      # I-frames - TTL 100ms
-    MEDIUM = 2    # P-frames - TTL 50ms (défaut)
-    LOW = 3       # Chat, meta - TTL 20ms
+    CRITICAL = 0  # 500ms
+    HIGH = 1      # 100ms
+    MEDIUM = 2    # 50ms 
+    LOW = 3       # 20ms
 
 
 @dataclass
@@ -127,34 +88,21 @@ class rQUICServer:
         return self.get_results()
     
     def handle_packet(self, data: bytes, addr):
-        # ============================================================
-        # COMPATIBILITÉ NOUVEAU FORMAT - NOUVEAU CODE
-        # ============================================================
-        # Ancien format : [type(1)][frame_id(4)][size(4)][data]  = 9 bytes min
-        # Nouveau format : [type(1)][frame_id(4)][size(4)][priority(1)][data] = 10 bytes min
-        # On accepte les deux formats pour rétro-compatibilité
-        # ============================================================
         if len(data) < 9:
             return
         
         packet_type = data[0]
         
+        #format
         if packet_type == PACKET_DATA:
-            # ============================================================
-            # DÉCODAGE AVEC/SANS PRIORITÉ - NOUVEAU CODE
-            # ============================================================
-            # Si paquet >= 10 bytes, il contient la priorité
-            # Sinon, format ancien (on ignore la priorité côté serveur)
-            # ============================================================
+            #hhhhhhhhhhhh
             if len(data) >= 10:
-                # Nouveau format avec priorité
                 frame_id, frame_size, priority = struct.unpack('!IIB', data[1:10])
                 frame_data = data[10:10+frame_size]
             else:
-                # Ancien format sans priorité (rétro-compatibilité)
                 frame_id, frame_size = struct.unpack('!II', data[1:9])
                 frame_data = data[9:9+frame_size]
-                priority = FramePriority.MEDIUM  # Défaut si pas spécifié
+                priority = FramePriority.MEDIUM  
             
             recv_time = time.time()
             
@@ -222,7 +170,6 @@ class rQUICServer:
 
 
 class rQUICClient:
-    """Client rQUIC avec retransmission automatique"""
     
     def __init__(self, server_host: str, server_port: int = 5000):
         self.server_host = server_host
@@ -240,19 +187,11 @@ class rQUICClient:
          # HHHHHHHHHHHHHH
         self.frame_ttl = 0.050  # 50ms
         
-        # ============================================================
-        # TTL PAR PRIORITÉ - NOUVEAU CODE
-        # ============================================================
-        # Chaque type de donnée a son propre TTL adapté :
-        # CRITICAL = 500ms → Input joueur (clavier/souris) JAMAIS perdu
-        # HIGH = 100ms → I-frame vidéo (référence pour autres frames)
-        # MEDIUM = 50ms → P-frame vidéo (delta par rapport I-frame)
-        # LOW = 20ms → Chat, métadonnées (pas critique)
-        # ============================================================
+        #temp de drop en fonction de la criticité
         self.frame_ttl_by_priority = {
             FramePriority.CRITICAL: 0.5,    # 500ms
             FramePriority.HIGH: 0.1,        # 100ms
-            FramePriority.MEDIUM: 0.050,    # 50ms (défaut actuel)
+            FramePriority.MEDIUM: 0.050,    # 50ms 
             FramePriority.LOW: 0.020        # 20ms
         }
         
@@ -268,26 +207,12 @@ class rQUICClient:
             size = int(random.gauss(self.avg_frame_size * 0.7, self.avg_frame_size * 0.2))
         return max(1000, min(size, self.max_frame_size))
     
-    # ============================================================
-    # DÉTECTION AUTOMATIQUE DE PRIORITÉ - NOUVEAU CODE
-    # ============================================================
-    # Fonction qui détermine la priorité selon le type de frame :
-    # - I-frame (grosse) → HIGH (importante pour reconstruction)
-    # - P-frame (petite) → MEDIUM (delta, moins critique)
-    # - B-frame (très petite) → LOW (bidirectionnelle, optionnelle)
-    # ============================================================
+    #
     def detect_frame_priority(self, frame_size: int) -> FramePriority:
-        """
-        Détecte la priorité d'une frame selon sa taille.
-        Dans un vrai système, ça serait passé par l'encodeur vidéo.
-        """
-        # I-frame : Grosse (> 80KB) → HIGH priority
         if frame_size > 80000:
             return FramePriority.HIGH
-        # P-frame : Moyenne (20-80KB) → MEDIUM priority
         elif frame_size > 20000:
             return FramePriority.MEDIUM
-        # B-frame : Petite (< 20KB) → LOW priority
         else:
             return FramePriority.LOW
     
@@ -295,33 +220,14 @@ class rQUICClient:
         size = self.generate_frame_size()
         data = bytes(random.getrandbits(8) for _ in range(size))
         
-        # ============================================================
-        # AUTO-DÉTECTION PRIORITÉ - NOUVEAU CODE
-        # ============================================================
-        # Si pas de priorité explicite, on la détecte selon la taille
-        # (simule le comportement d'un encodeur vidéo réel)
-        # ============================================================
+        #pas de priorité envoyer avec une priorité au talent
         if priority is None:
             priority = self.detect_frame_priority(size)
         
-        # ============================================================
-        # ENCODAGE PRIORITÉ DANS PAQUET - NOUVEAU CODE
-        # ============================================================
-        # Format du paquet : [type(1B)][frame_id(4B)][size(4B)][priority(1B)][data]
-        # Ancien format : '!BII' (type + frame_id + size)
-        # Nouveau format : '!BIIB' (+ priority à la fin)
-        # ============================================================
         packet = struct.pack('!BIIB', PACKET_DATA, frame_id, size, priority) + data
         
         self.sock.sendto(packet, (self.server_host, self.server_port))
         
-        # ============================================================
-        # STOCKAGE AVEC PRIORITÉ - NOUVEAU CODE
-        # ============================================================
-        # Ancien tuple : (packet, send_time, retries)
-        # Nouveau tuple : (packet, send_time, retries, priority)
-        # → On garde la priorité pour check_timeouts() et retransmit_frame()
-        # ============================================================
         self.pending_acks[frame_id] = (packet, time.time(), 0, priority)
         
         self.stats.frames_sent += 1
@@ -340,15 +246,10 @@ class rQUICClient:
                 packet_type = data[0]
                 frame_id = struct.unpack('!I', data[1:5])[0]
                 
+                #hhhh adaptation
                 if packet_type == PACKET_ACK:
                     if frame_id in self.pending_acks:
-                        # ============================================================
-                        # COMPATIBILITÉ AVEC NOUVEAU FORMAT - NOUVEAU CODE
-                        # ============================================================
-                        # Maintenant pending_acks[frame_id] a 4 éléments :
-                        # (packet, send_time, retries, priority)
-                        # On extrait send_time (index 1) comme avant
-                        # ============================================================
+                        
                         send_time = self.pending_acks[frame_id][1]
                         rtt = time.time() - send_time
                         self.stats.rtt_samples.append(rtt * 1000)
@@ -372,27 +273,12 @@ class rQUICClient:
         if frame_id not in self.pending_acks:
             return
         
-        # ============================================================
-        # EXTRACTION AVEC PRIORITÉ - NOUVEAU CODE
-        # ============================================================
-        # Ancien format : (packet, send_time, retries)
-        # Nouveau format : (packet, send_time, retries, priority)
-        # ============================================================
+        #recup la prio
         packet, send_time, retries, priority = self.pending_acks[frame_id]
         
         # HHHHHHHHHHHHHH
         frame_age = time.time() - send_time
-        
-        # ============================================================
-        # TTL SELON PRIORITÉ - NOUVEAU CODE
-        # ============================================================
-        # Au lieu d'utiliser self.frame_ttl (50ms pour tout),
-        # on utilise le TTL adapté à la priorité de cette frame :
-        # - CRITICAL → 500ms (input joueur, JAMAIS dropper)
-        # - HIGH → 100ms (I-frame, important)
-        # - MEDIUM → 50ms (P-frame, peut dropper)
-        # - LOW → 20ms (B-frame, dropper vite)
-        # ============================================================
+        # recup le temp
         ttl_for_this_frame = self.frame_ttl_by_priority[priority]
         
         if frame_age > ttl_for_this_frame:
@@ -402,11 +288,7 @@ class rQUICClient:
             
             # Log 
             if self.stats.frames_dropped_ttl % 10 == 0:
-                # ============================================================
-                # LOG AVEC PRIORITÉ - NOUVEAU CODE
-                # ============================================================
-                # Affiche la priorité de la frame droppée pour debug
-                # ============================================================
+                
                 priority_name = FramePriority(priority).name
                 print(f"[rQUIC TTL] {self.stats.frames_dropped_ttl} frames droppées "
                       f"(obsolètes > {ttl_for_this_frame*1000:.0f}ms, dernière: {priority_name})")
@@ -415,11 +297,6 @@ class rQUICClient:
         # Frame ok
         if retries < self.max_retries:
             self.sock.sendto(packet, (self.server_host, self.server_port))
-            # ============================================================
-            # MISE À JOUR AVEC PRIORITÉ - NOUVEAU CODE
-            # ============================================================
-            # On garde la priorité dans le tuple mis à jour
-            # ============================================================
             self.pending_acks[frame_id] = (packet, time.time(), retries + 1, priority)
             self.stats.retransmissions += 1
     
@@ -428,23 +305,13 @@ class rQUICClient:
         frames_to_drop = []
         frames_to_retransmit = []
          # HHHHHHHHHHHHHH
-        # ============================================================
-        # ITÉRATION AVEC PRIORITÉ - NOUVEAU CODE
-        # ============================================================
-        # Maintenant chaque tuple a 4 éléments : (packet, send_time, retries, priority)
-        # ============================================================
         for frame_id, (packet, send_time, retries, priority) in list(self.pending_acks.items()):
             frame_age = current_time - send_time
             
-            # ============================================================
-            # TTL SELON PRIORITÉ - NOUVEAU CODE
-            # ============================================================
-            # Utilise le TTL adapté à la priorité de cette frame
-            # ============================================================
             ttl_for_this_frame = self.frame_ttl_by_priority[priority]
         
             if frame_age > ttl_for_this_frame:
-                # Frame OBSOLÈTE
+                # Frame morte
                 frames_to_drop.append(frame_id)
                 
             elif current_time - send_time > self.rto:
@@ -459,13 +326,8 @@ class rQUICClient:
             del self.pending_acks[frame_id]
             self.stats.frames_dropped_ttl += 1
         
-         # HHHHHHHHHHHHHH
+         # HHHHHHHHHHHHHH on reconstruit avec la prio
         for frame_id in frames_to_retransmit:
-            # ============================================================
-            # RETRANSMISSION AVEC PRIORITÉ - NOUVEAU CODE
-            # ============================================================
-            # On extrait et remet la priorité dans le tuple
-            # ============================================================
             packet, send_time, retries, priority = self.pending_acks[frame_id]
             self.sock.sendto(packet, (self.server_host, self.server_port))
             self.pending_acks[frame_id] = (packet, current_time, retries + 1, priority)

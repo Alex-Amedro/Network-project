@@ -625,7 +625,8 @@ def generate_graph(results):
     channels = ["VIDEO", "AUDIO", "INPUT", "CHAT"]
     scenarios = [r["scenario"] for r in results]
     
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig.subplots_adjust(hspace=0.35, wspace=0.3, top=0.95, bottom=0.08)
     
     for idx, scenario in enumerate(scenarios):
         r = results[idx]
@@ -644,12 +645,12 @@ def generate_graph(results):
         ax1.bar(x, quic_jitter, width, label='QUIC', color='#3498db', alpha=0.8)
         ax1.bar(x + width, rquic_jitter, width, label='rQUIC (TTL)', color='#2ecc71', alpha=0.8)
         
-        ax1.set_xlabel('Channel', fontsize=12, fontweight='bold')
-        ax1.set_ylabel('Jitter (ms)', fontsize=12, fontweight='bold')
-        ax1.set_title(f'Jitter Comparison: {scenario}', fontsize=14, fontweight='bold')
+        ax1.set_xlabel('Channel', fontsize=11, fontweight='bold')
+        ax1.set_ylabel('Jitter (ms)', fontsize=11, fontweight='bold')
+        ax1.set_title(f'Jitter: {scenario}', fontsize=12, fontweight='bold')
         ax1.set_xticks(x)
         ax1.set_xticklabels(channels)
-        ax1.legend(fontsize=10)
+        ax1.legend(fontsize=9)
         ax1.grid(axis='y', alpha=0.3)
         
         # Graphique 2 : Frames droppées par rQUIC (TTL)
@@ -666,19 +667,13 @@ def generate_graph(results):
         for i, (ch, dropped, received) in enumerate(zip(channels, rquic_dropped, rquic_received)):
             total = dropped + received
             pct = (dropped / total * 100) if total > 0 else 0
-            ax2.text(i, dropped + 0.5, f'{pct:.1f}%', ha='center', va='bottom', fontsize=10, fontweight='bold')
+            ax2.text(i, dropped + 0.5, f'{pct:.1f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
         
-        ax2.set_xlabel('Channel (Priority)', fontsize=12, fontweight='bold')
-        ax2.set_ylabel('Frames Dropped (TTL)', fontsize=12, fontweight='bold')
-        ax2.set_title(f'rQUIC TTL Drops: {scenario}', fontsize=14, fontweight='bold')
+        ax2.set_xlabel('Channel', fontsize=11, fontweight='bold')
+        ax2.set_ylabel('Frames Dropped (TTL)', fontsize=11, fontweight='bold')
+        ax2.set_title(f'rQUIC Drops: {scenario}', fontsize=12, fontweight='bold')
         ax2.grid(axis='y', alpha=0.3)
-        
-        # Légende des priorités
-        priority_text = "Priorities: INPUT=CRITICAL(500ms), AUDIO=HIGH(100ms),\nVIDEO=MEDIUM(50ms), CHAT=LOW(20ms)"
-        ax2.text(0.5, -0.15, priority_text, transform=ax2.transAxes, 
-                ha='center', fontsize=9, style='italic', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
     
-    plt.tight_layout()
     plt.savefig('MULTI_CHANNEL_RESULTS.png', dpi=150, bbox_inches='tight')
     plt.close('all')
     print("Graph saved: MULTI_CHANNEL_RESULTS.png")
